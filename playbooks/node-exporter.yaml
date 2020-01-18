@@ -1,0 +1,70 @@
+---
+- name: Install the Prometheus node_exporter
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Download node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz to /tmp
+    get_url:
+      url: "{{ prometheus_repository }}/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+      dest: /tmp
+    delegate_to: localhost
+
+  - name: Extrat /tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz to {{ install_prefix }}
+    unarchive:
+      src: /tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz
+      dest: "{{ install_prefix }}"
+    become: true
+    notify:
+    - restart node_exporter
+
+  - name: Symlink {{ install_prefix }}/node_exporter to {{ install_prefix }}/node_exporter-{{ node_exporter_version }}.linux-amd64
+    file:
+      src: "{{ install_prefix }}/node_exporter-{{ node_exporter_version }}.linux-amd64"
+      path: "{{ install_prefix }}/node_exporter"
+      state: link
+    become: true
+    notify:
+    - restart node_exporter
+
+  - name: Create /etc/sysconfig
+    file:
+      path: /etc/sysconfig
+      state: directory
+    become: true
+
+  - name: Install /etc/sysconfig/node_exporter
+    copy:
+      content: |
+        # OPTIONS="--collector.textfile.directory /var/lib/node_exporter/textfile_collector"
+      dest: /etc/sysconfig/node_exporter
+    become: true
+    notify:
+    - restart node_exporter
+
+  - name: Install /etc/systemd/system/node_exporter.service
+    copy:
+      content: |
+        [Unit]
+        Description=Node Exporter
+
+        [Service]
+        User=node_exporter
+        EnvironmentFile=/etc/sysconfig/node_exporter
+        ExecStart={{ install_prefix }}/node_exporter/node_exporter $OPTIONS
+
+        [Install]
+        WantedBy=multi-user.target
+      dest: /etc/systemd/system/node_exporter.service
+    become: true
+    notify:
+    - restart node_exporter
+
+  handlers:
+  - name: restart node_exporter
+    systemd:
+      name: node_exporter
+      state: restarted
+      enabled: yes
+      daemon_reload: yes
+    become: true
