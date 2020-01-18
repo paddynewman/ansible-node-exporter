@@ -10,10 +10,12 @@
       dest: /tmp
     delegate_to: localhost
 
-  - name: Extrat /tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz to {{ install_prefix }}
+  - name: Extract /tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz to {{ install_prefix }}
     unarchive:
       src: /tmp/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz
       dest: "{{ install_prefix }}"
+      owner: root
+      group: root
     become: true
     notify:
     - restart node_exporter
@@ -22,6 +24,8 @@
     file:
       src: "{{ install_prefix }}/node_exporter-{{ node_exporter_version }}.linux-amd64"
       path: "{{ install_prefix }}/node_exporter"
+      owner: root
+      group: root
       state: link
     become: true
     notify:
@@ -30,6 +34,8 @@
   - name: Create /etc/sysconfig
     file:
       path: /etc/sysconfig
+      owner: root
+      group: root
       state: directory
     become: true
 
@@ -38,6 +44,8 @@
       content: |
         # OPTIONS="--collector.textfile.directory /var/lib/node_exporter/textfile_collector"
       dest: /etc/sysconfig/node_exporter
+      owner: root
+      group: root
     become: true
     notify:
     - restart node_exporter
@@ -49,13 +57,14 @@
         Description=Node Exporter
 
         [Service]
-        User=node_exporter
         EnvironmentFile=/etc/sysconfig/node_exporter
         ExecStart={{ install_prefix }}/node_exporter/node_exporter $OPTIONS
 
         [Install]
         WantedBy=multi-user.target
       dest: /etc/systemd/system/node_exporter.service
+      owner: root
+      group: root
     become: true
     notify:
     - restart node_exporter

@@ -1,4 +1,6 @@
 ---
-install_prefix: /opt
 prometheus_repository: https://github.com/prometheus
+install_prefix: /opt
+prometheus_data: /var/prometheus-data
 node_exporter_version: 0.18.1
+prometheus_version: 2.15.2

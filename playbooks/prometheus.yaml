@@ -1,0 +1,89 @@
+---
+- name: Install the Prometheus server
+  hosts: prometheus
+  gather_facts: false
+
+  tasks:
+  - name: Download prometheus-{{ prometheus_version }}.linux-amd64.tar.gz to /tmp
+    get_url:
+      url: "{{ prometheus_repository }}/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+      dest: /tmp
+    delegate_to: localhost
+
+  - name: Extract /tmp/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz to {{ install_prefix }}
+    unarchive:
+      src: /tmp/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz
+      dest: "{{ install_prefix }}"
+      owner: root
+      group: root
+    become: true
+    notify:
+    - restart prometheus
+
+  - name: Symlink {{ install_prefix }}/prometheus to {{ install_prefix }}/prometheus-{{ prometheus_version }}.linux-amd64
+    file:
+      src: "{{ install_prefix }}/prometheus-{{ prometheus_version }}.linux-amd64"
+      path: "{{ install_prefix }}/prometheus"
+      owner: root
+      group: root
+      state: link
+    become: true
+    notify:
+    - restart prometheus
+
+  - name: Install /etc/prometheus/prometheus.yml
+    copy: 
+      src: ../conf/prometheus.yml
+      dest: /etc/prometheus/
+      owner: root
+      group: root
+    become: true
+    notify:
+    - restart prometheus
+
+  - name: Create /etc/sysconfig
+    file:
+      path: /etc/sysconfig
+      owner: root
+      group: root
+      state: directory
+    become: true
+
+  - name: Install /etc/sysconfig/prometheus
+    copy:
+      content: |
+        OPTIONS="--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path={{ prometheus_data }}"
+      dest: /etc/sysconfig/prometheus
+      owner: root
+      group: root
+    become: true
+    notify:
+    - restart prometheus
+
+  - name: Install /etc/systemd/system/prometheus.service
+    copy:
+      content: |
+        [Unit]
+        Description=Prometheus
+
+        [Service]
+        EnvironmentFile=/etc/sysconfig/prometheus
+        ExecStart={{ install_prefix }}/prometheus/prometheus $OPTIONS
+
+        [Install]
+        WantedBy=multi-user.target
+      dest: /etc/systemd/system/prometheus.service
+      owner: root
+      group: root
+    become: true
+    notify:
+    - restart prometheus
+
+  handlers:
+  - name: restart prometheus
+    systemd:
+      name: prometheus
+      state: restarted
+      enabled: yes
+      daemon_reload: yes
+    become: true
