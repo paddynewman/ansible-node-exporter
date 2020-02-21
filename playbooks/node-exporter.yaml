@@ -1,6 +1,6 @@
 ---
 - name: Install the Prometheus node_exporter
-  hosts: all
+  hosts: node_exporter
   gather_facts: false
 
   tasks:
