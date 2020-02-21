@@ -17,8 +17,6 @@
       owner: root
       group: root
     become: true
-    notify:
-    - restart prometheus
 
   - name: Symlink {{ install_prefix }}/prometheus to {{ install_prefix }}/prometheus-{{ prometheus_version }}.linux-amd64
     file:
@@ -32,14 +30,24 @@
     - restart prometheus
 
   - name: Install /etc/prometheus/prometheus.yml
-    copy: 
+    copy:
       src: ../conf/prometheus.yml
       dest: /etc/prometheus/
       owner: root
       group: root
     become: true
     notify:
-    - restart prometheus
+    - reload prometheus
+
+  - name: Install /etc/prometheus/alerts.yml
+    copy:
+      src: ../conf/alerts.yml
+      dest: /etc/prometheus/
+      owner: root
+      group: root
+    become: true
+    notify:
+    - reload prometheus
 
   - name: Create /etc/sysconfig
     file:
@@ -81,6 +89,12 @@
     - restart prometheus
 
   handlers:
+  - name: reload prometheus
+    systemd:
+      name: prometheus
+      state: reloaded
+    become: true
+
   - name: restart prometheus
     systemd:
       name: prometheus

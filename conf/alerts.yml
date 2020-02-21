@@ -1,0 +1,11 @@
+groups:
+- name: alerts
+  rules:
+  - alert: ScrapeTargetIsDown
+    expr: up == 0
+    for: 10m
+    labels:
+      severity: low
+    annotations:
+      summary: Prometheus cannot scrape {{ $labels.job }}:{{ $labels.instance }}.
+      description: The {{ $labels.job }}:{{ $labels.instance }} instance has been down for longer than 10 minutes.
