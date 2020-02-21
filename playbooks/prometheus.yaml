@@ -69,6 +69,7 @@
         [Service]
         EnvironmentFile=/etc/sysconfig/prometheus
         ExecStart={{ install_prefix }}/prometheus/prometheus $OPTIONS
+        ExecReload=/bin/kill -HUP $MAINPID
 
         [Install]
         WantedBy=multi-user.target
