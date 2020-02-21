@@ -1,11 +1,20 @@
 groups:
-- name: alerts
+- name: prometheus
   rules:
   - alert: ScrapeTargetIsDown
     expr: up == 0
-    for: 10m
+    for: 1h
     labels:
       severity: low
     annotations:
       summary: Prometheus cannot scrape {{ $labels.job }}:{{ $labels.instance }}.
-      description: The {{ $labels.job }}:{{ $labels.instance }} instance has been down for longer than 10 minutes.
+
+- name: node
+  rules:
+  - alert: RootFilesystemIsFull
+    expr: node_filesystem_avail_bytes{mountpoint="/"} / 1024^3 < 3
+    for: 1h
+    labels:
+      severity: medium
+    annotations:
+      summary: The root filesystem on {{ $labels.instance }} has less than 3G of space available ({{ $labels.value }}%).
